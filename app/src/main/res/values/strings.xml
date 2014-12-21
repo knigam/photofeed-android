@@ -5,4 +5,7 @@
     <string name="take_picture">Take Picture</string>
     <string name="action_settings">Settings</string>
 
+    <!-- Routes -->
+    <string name="conn">http://kushalnigam.tk:8080</string>
+    <string name="picture_create">/pictures.json</string>
 </resources>

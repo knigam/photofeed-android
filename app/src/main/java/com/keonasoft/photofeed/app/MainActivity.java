@@ -14,6 +14,16 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
+
+import com.keonasoft.photofeed.app.helper.HttpHelper;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+import com.loopj.android.http.ResponseHandlerInterface;
+
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.protocol.HTTP;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -21,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -37,6 +48,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        HttpHelper.getInstance().initialize(getApplicationContext());
         cameraBtn = (Button) findViewById(R.id.camera_button);
         mImageView = (ImageView) findViewById(R.id.thumbnail);
 
@@ -71,10 +83,30 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-//            Bundle extras = data.getExtras();
-//            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            Bitmap imageBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
-            mImageView.setImageBitmap(imageBitmap);
+
+            //Todo: send picture to server
+            final String URL = getString(R.string.conn) + getString(R.string.picture_create);
+            File image = new File(mCurrentPhotoPath);
+            RequestParams params = new RequestParams();
+
+            try {
+                params.put("image", image);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            HttpHelper.getInstance().getClient().post(URL, params, new AsyncHttpResponseHandler() {
+                @Override
+                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                    Bitmap imageBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
+                    mImageView.setImageBitmap(imageBitmap);
+                }
+
+                @Override
+                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                    Toast.makeText(MainActivity.this, "Sending failed", Toast.LENGTH_SHORT);
+                }
+            });
         }
     }
 
@@ -102,7 +134,7 @@ public class MainActivity extends Activity {
 
     private File createImageFile() throws IOException {
         // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyMMdd_HHmmss").format(new Date());
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
 
