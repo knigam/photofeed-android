@@ -27,6 +27,7 @@ public class HttpHelper {
      */
     public void initialize(Context context) {
         this.mCookie = new PersistentCookieStore(context);
+        this.mAsyncHttpClient = new AsyncHttpClient();
         this.mAsyncHttpClient.setCookieStore(mCookie);
         this.initialized = true;
     }

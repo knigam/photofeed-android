@@ -1,6 +1,7 @@
 package com.keonasoft.photofeed.app;
 
 import android.app.Activity;
+import android.app.DownloadManager;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -9,6 +10,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.JsonReader;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,6 +26,8 @@ import com.loopj.android.http.ResponseHandlerInterface;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.protocol.HTTP;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -88,18 +92,39 @@ public class MainActivity extends Activity {
             final String URL = getString(R.string.conn) + getString(R.string.picture_create);
             File image = new File(mCurrentPhotoPath);
             RequestParams params = new RequestParams();
-
+            params.put("text", image.getName());
             try {
                 params.put("image", image);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-
+            final String[] IMAGEURL = new String[1];
+            HttpHelper.getInstance().getClient().setTimeout(600);
             HttpHelper.getInstance().getClient().post(URL, params, new AsyncHttpResponseHandler() {
                 @Override
                 public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                    Bitmap imageBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
-                    mImageView.setImageBitmap(imageBitmap);
+                    JSONObject json;
+                    final String CONN = getString(R.string.conn);
+                    String imageUrl = CONN + "/404.html";
+                    try {
+                        json = new JSONObject(new String(responseBody));
+                        imageUrl = CONN + json.getString("image_url");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                    HttpHelper.getInstance().getClient().get(imageUrl, new AsyncHttpResponseHandler() {
+                        @Override
+                        public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                            Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
+                            mImageView.setImageBitmap(bitmap);
+                        }
+
+                        @Override
+                        public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+                        }
+                    });
                 }
 
                 @Override
@@ -107,6 +132,8 @@ public class MainActivity extends Activity {
                     Toast.makeText(MainActivity.this, "Sending failed", Toast.LENGTH_SHORT);
                 }
             });
+
+
         }
     }
 
@@ -135,7 +162,7 @@ public class MainActivity extends Activity {
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
+        String imageFileName = "JPEG_" + timeStamp;
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
 
         File image = File.createTempFile(imageFileName, ".jpg", storageDir);
