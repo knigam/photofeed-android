@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.keonasoft.photofeed.app.helper.HttpHelper;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
@@ -45,7 +46,7 @@ public class MainActivity extends Activity {
     static final int REQUEST_IMAGE_CAPTURE = 1;
     static final int REQUEST_TAKE_PHOTO = 1;
     String mCurrentPhotoPath;
-    Button cameraBtn;
+    FloatingActionButton cameraBtn;
     ImageView mImageView;
 
     @Override
@@ -53,7 +54,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         HttpHelper.getInstance().initialize(getApplicationContext());
-        cameraBtn = (Button) findViewById(R.id.camera_button);
+        cameraBtn = (FloatingActionButton) findViewById(R.id.camera_button);
         mImageView = (ImageView) findViewById(R.id.thumbnail);
 
         cameraBtn.setOnClickListener(new View.OnClickListener() {
@@ -62,6 +63,8 @@ public class MainActivity extends Activity {
                 dispatchTakePictureIntent();
             }
         });
+
+
     }
 
 
