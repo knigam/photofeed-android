@@ -1,7 +1,6 @@
 package com.keonasoft.photofeed.app;
 
 import android.app.Activity;
-import android.app.DownloadManager;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -10,14 +9,11 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.widget.DrawerLayout;
-import android.util.Base64;
-import android.util.JsonReader;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -26,22 +22,15 @@ import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.keonasoft.photofeed.app.helper.HttpHelper;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
-import com.loopj.android.http.ResponseHandlerInterface;
 
 import org.apache.http.Header;
-import org.apache.http.HttpResponse;
-import org.apache.http.protocol.HTTP;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -56,10 +45,14 @@ public class MainActivity extends Activity {
     private String mCurrentPhotoPath;
     private FloatingActionButton cameraBtn;
     private ImageView mImageView;
-    private ArrayList<String> listItems;
-    private Map<Integer, String> urls;
+    private ArrayList<String> drawerListItems;
+    private Map<Integer, String> albumUrls;
     private DrawerLayout mDrawerLayout;
     private ListView mDrawerList;
+
+    private ArrayList<String> pictureListItems;
+    private ListView picturesList;
+    private Map<Integer, String> pictureUrls;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,12 +63,14 @@ public class MainActivity extends Activity {
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
+        picturesList = (ListView) findViewById(R.id.pictures_list);
+
         updateDrawerListItems();
 
         mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
             public void onItemClick(AdapterView parent, View view, int position, long id) {
-                HttpHelper.getInstance().getClient().get(urls.get(position), new AsyncHttpResponseHandler() {
+                HttpHelper.getInstance().getClient().get(albumUrls.get(position), new AsyncHttpResponseHandler() {
                     @Override
                     public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                         Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
@@ -88,7 +83,7 @@ public class MainActivity extends Activity {
                     }
                 });
                 mDrawerList.setItemChecked(position, true);
-                setTitle(listItems.get(position));
+                setTitle(drawerListItems.get(position));
                 mDrawerLayout.closeDrawer(mDrawerList);
             }
         });
@@ -214,9 +209,9 @@ public class MainActivity extends Activity {
     }
 
     private void updateDrawerListItems() {
-        urls = new HashMap<Integer, String>();
-        listItems = new ArrayList<String>();
-        HttpHelper.getInstance().getClient().get("http://kushalnigam.tk:8080/pictures.json", new AsyncHttpResponseHandler() {
+        albumUrls = new HashMap<Integer, String>();
+        drawerListItems = new ArrayList<String>();
+        HttpHelper.getInstance().getClient().get(getString(R.string.conn) + getString(R.string.picture_index), new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 JSONArray json;
@@ -224,13 +219,13 @@ public class MainActivity extends Activity {
                     json = new JSONArray(new String(responseBody));
                     for (int i = 0; i < json.length(); i++){
                         JSONObject j = json.getJSONObject(i);
-                        listItems.add(j.getString("text"));
-                        urls.put(i, getString(R.string.conn) + j.getString("original_url"));
+                        drawerListItems.add(j.getString("text"));
+                        albumUrls.put(i, getString(R.string.conn) + j.getString("original_url"));
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                mDrawerList.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, listItems));
+                mDrawerList.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, drawerListItems));
             }
 
             @Override
@@ -240,21 +235,30 @@ public class MainActivity extends Activity {
         });
     }
 
-    private String imageToBase64(String fileName) throws FileNotFoundException {
-        InputStream inputStream = new FileInputStream(fileName);//You can get an inputStream using any IO API
-        byte[] bytes;
-        byte[] buffer = new byte[8192];
-        int bytesRead;
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        try {
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                output.write(buffer, 0, bytesRead);
+    private void populatePicturesList() {
+        pictureUrls = new HashMap<Integer, String>();
+        pictureListItems = new ArrayList<String>();
+        HttpHelper.getInstance().getClient().get(getString(R.string.conn) + getString(R.string.picture_index), new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                JSONArray json;
+                try {
+                    json = new JSONArray(new String(responseBody));
+                    for (int i = 0; i < json.length(); i++){
+                        JSONObject j = json.getJSONObject(i);
+                        pictureListItems.add(j.getString("text"));
+                        pictureUrls.put(i, getString(R.string.conn) + j.getString("original_url"));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                picturesList.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, drawerListItems));
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        bytes = output.toByteArray();
-        String encodedString = Base64.encodeToString(bytes, Base64.DEFAULT);
-        return encodedString;
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+            }
+        });
     }
 }
