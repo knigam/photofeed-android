@@ -61,6 +61,7 @@ public class MainActivity extends Activity {
     private Map<Integer, String> albumUrls;
     private DrawerLayout mDrawerLayout;
     private ListView mDrawerList;
+    private PictureAdapter adapter;
 
     private ArrayList<HashMap<String,String>> pictureListItems;
     private RecyclerView picturesList;
@@ -82,7 +83,7 @@ public class MainActivity extends Activity {
         mLayoutManager = new LinearLayoutManager(this);
         picturesList.setLayoutManager(mLayoutManager);
 
-        PictureAdapter adapter = new PictureAdapter(getBaseContext(), pictureListItems);
+        adapter = new PictureAdapter(pictureListItems);
         picturesList.setAdapter(adapter);
 
         updateDrawerListItems();
@@ -279,6 +280,7 @@ public class MainActivity extends Activity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+                adapter.refresh(pictureListItems);
             }
 
             @Override
@@ -286,29 +288,25 @@ public class MainActivity extends Activity {
 
             }
         });
-        PictureAdapter adapter = new PictureAdapter(getBaseContext(), pictureListItems);
-        picturesList.setAdapter(adapter);
     }
 
     private class PictureAdapter extends RecyclerView.Adapter {
         private List<HashMap<String, String>> data;
-        private ImageView thumb;
 
         private class ViewHolder extends RecyclerView.ViewHolder{
             TextView tv;
             ImageView img;
 
-            public ViewHolder(TextView tv, ImageView img){
-                super(tv);
-                this.tv = tv;
-                this.img = img;
+            public ViewHolder(View v){
+                super(v);
+                this.tv = (TextView) v.findViewById(R.id.picture_text);
+                this.img = (ImageView) v.findViewById(R.id.picture_thumb);
             }
         }
 
         // Provide a suitable constructor (depends on the kind of dataset)
-        public PictureAdapter(Context context, List<HashMap<String, String>> data) {
+        public PictureAdapter(List<HashMap<String, String>> data) {
             this.data = data;
-            System.out.println("COUNT: " + getItemCount());
         }
 
         // Create new views (invoked by the layout manager)
@@ -318,10 +316,8 @@ public class MainActivity extends Activity {
             View rowView = LayoutInflater.from(parent.getContext()).inflate(R.layout.picture_item, parent, false);
 
             // set the view's size, margins, paddings and layout parameters
-            TextView tv = (TextView) rowView.findViewById(R.id.picture_text);
-            ImageView img = (ImageView) rowView.findViewById(R.id.picture_thumb);
 
-            ViewHolder vh = new ViewHolder(tv, img);
+            ViewHolder vh = new ViewHolder(rowView);
             return vh;
         }
 
@@ -345,7 +341,11 @@ public class MainActivity extends Activity {
 
                 }
             });
-            System.out.println("TEXT: " + mHolder.tv.getText());
+        }
+
+        public void refresh(List<HashMap<String,String>> data) {
+            this.data = data;
+            notifyDataSetChanged();
         }
 
         // Return the size of your dataset (invoked by the layout manager)
@@ -353,64 +353,5 @@ public class MainActivity extends Activity {
         public int getItemCount() {
             return data == null ? 0 : data.size();
         }
-
-        ////// EVERYTHING BELOW THIS IS OLD
-
-//        public PictureAdapter(Context context, List<HashMap<String, String>> data){
-//            this.data = data;
-//            inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-//        }
-//        @Override
-//        public int getCount() {
-//            return data.size();
-//        }
-//
-//        @Override
-//        public HashMap<String, String> getItem(int position) {
-//            return data.get(position);
-//        }
-//
-//        @Override
-//        public long getItemId(int position) {
-//            return position;
-//        }
-//
-//        private class Holder{
-//            TextView tv;
-//            ImageView img;
-//        }
-//
-//        @Override
-//        public View getView(int position, View convertView, ViewGroup parent) {
-//
-//            final Holder holder = new Holder();
-//            View rowView;
-//            rowView = inflater.inflate(R.layout.picture_item, null);
-//            holder.tv=(TextView) rowView.findViewById(R.id.picture_text);
-//            holder.img=(ImageView) rowView.findViewById(R.id.picture_thumb);
-//
-//            holder.tv.setText(data.get(position).get("picture_text"));
-//
-//            HttpHelper.getInstance().getClient().get(getString(R.string.conn) + data.get(position).get("picture_thumb"), new AsyncHttpResponseHandler() {
-//                @Override
-//                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-//                    Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
-//                    holder.img.setImageBitmap(bitmap);
-//                }
-//
-//                @Override
-//                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-//
-//                }
-//            });
-//
-////            rowView.setOnClickListener(new View.OnClickListener() {
-////                @Override
-////                public void onClick(View v) {
-////                    Toast.makeText(context, "You Clicked "+result[position], Toast.LENGTH_LONG).show();
-////                }
-////            });
-//            return rowView;
-//        }
     }
 }
