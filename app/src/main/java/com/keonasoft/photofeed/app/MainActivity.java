@@ -5,11 +5,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Picture;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,6 +25,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
@@ -58,8 +63,8 @@ public class MainActivity extends Activity {
     private ListView mDrawerList;
 
     private ArrayList<HashMap<String,String>> pictureListItems;
-    private ListView picturesList;
-    private Map<Integer, String> pictureUrls;
+    private RecyclerView picturesList;
+    private RecyclerView.LayoutManager mLayoutManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +75,15 @@ public class MainActivity extends Activity {
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
-        picturesList = (ListView) findViewById(R.id.pictures_list);
+        picturesList = (RecyclerView) findViewById(R.id.pictures_list);
+        picturesList.setHasFixedSize(true);
+
+        // use a linear layout manager
+        mLayoutManager = new LinearLayoutManager(this);
+        picturesList.setLayoutManager(mLayoutManager);
+
+        PictureAdapter adapter = new PictureAdapter(getBaseContext(), pictureListItems);
+        picturesList.setAdapter(adapter);
 
         updateDrawerListItems();
         populatePicturesList();
@@ -245,7 +258,6 @@ public class MainActivity extends Activity {
     }
 
     private void populatePicturesList() {
-        pictureUrls = new HashMap<Integer, String>();
         pictureListItems = new ArrayList<HashMap<String, String>>();
 
         HttpHelper.getInstance().getClient().get(getString(R.string.conn) + getString(R.string.picture_index), new AsyncHttpResponseHandler() {
@@ -258,21 +270,8 @@ public class MainActivity extends Activity {
                         JSONObject j = json.getJSONObject(i);
                         final HashMap<String,String> item = new HashMap<String, String>();
                         item.put("picture_text", j.getString("text"));
-
-                        HttpHelper.getInstance().getClient().get(getString(R.string.conn) + j.getString("thumb_url"), new AsyncHttpResponseHandler() {
-                            @Override
-                            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                                Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
-                                item.put("picture_thumb", bitmap.toString());
-                                picturesList.deferNotifyDataSetChanged();
-                            }
-
-                            @Override
-                            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-
-                            }
-                        });
-                        pictureUrls.put(i, getString(R.string.conn) + j.getString("original_url"));
+                        item.put("picture_thumb", j.getString("thumb_url"));
+                        item.put("picture_orig", j.getString("original_url"));
 
                         pictureListItems.add(item);
                     }
@@ -280,11 +279,6 @@ public class MainActivity extends Activity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                String[] from = {"picture_text", "picture_thumb"};
-                int[] to = {R.id.picture_text, R.id.picture_thumb};
-
-                SimpleAdapter adapter = new SimpleAdapter(getBaseContext(), pictureListItems, R.layout.picture_item, from, to);
-                picturesList.setAdapter(adapter);
             }
 
             @Override
@@ -292,31 +286,131 @@ public class MainActivity extends Activity {
 
             }
         });
+        PictureAdapter adapter = new PictureAdapter(getBaseContext(), pictureListItems);
+        picturesList.setAdapter(adapter);
     }
 
-    private class PictureAdapter extends BaseAdapter {
+    private class PictureAdapter extends RecyclerView.Adapter {
+        private List<HashMap<String, String>> data;
+        private ImageView thumb;
 
-        public PictureAdapter(Context context, List<HashMap<String, ?>> data, int Resource ){
+        private class ViewHolder extends RecyclerView.ViewHolder{
+            TextView tv;
+            ImageView img;
 
+            public ViewHolder(TextView tv, ImageView img){
+                super(tv);
+                this.tv = tv;
+                this.img = img;
+            }
         }
+
+        // Provide a suitable constructor (depends on the kind of dataset)
+        public PictureAdapter(Context context, List<HashMap<String, String>> data) {
+            this.data = data;
+            System.out.println("COUNT: " + getItemCount());
+        }
+
+        // Create new views (invoked by the layout manager)
         @Override
-        public int getCount() {
-            return 0;
+        public PictureAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            // create a new view
+            View rowView = LayoutInflater.from(parent.getContext()).inflate(R.layout.picture_item, parent, false);
+
+            // set the view's size, margins, paddings and layout parameters
+            TextView tv = (TextView) rowView.findViewById(R.id.picture_text);
+            ImageView img = (ImageView) rowView.findViewById(R.id.picture_thumb);
+
+            ViewHolder vh = new ViewHolder(tv, img);
+            return vh;
         }
 
+        // Replace the contents of a view (invoked by the layout manager)
         @Override
-        public Object getItem(int position) {
-            return null;
+        public void onBindViewHolder(RecyclerView.ViewHolder holder, final int position) {
+            // - get element from your dataset at this position
+            // - replace the contents of the view with that element
+            final ViewHolder mHolder = (ViewHolder)holder;
+            mHolder.tv.setText(data.get(position).get("picture_text"));
+
+            HttpHelper.getInstance().getClient().get(getString(R.string.conn) + data.get(position).get("picture_thumb"), new AsyncHttpResponseHandler() {
+                @Override
+                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody, 0, responseBody.length);
+                    mHolder.img.setImageBitmap(bitmap);
+                }
+
+                @Override
+                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+                }
+            });
+            System.out.println("TEXT: " + mHolder.tv.getText());
         }
 
+        // Return the size of your dataset (invoked by the layout manager)
         @Override
-        public long getItemId(int position) {
-            return 0;
+        public int getItemCount() {
+            return data == null ? 0 : data.size();
         }
 
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            return null;
-        }
+        ////// EVERYTHING BELOW THIS IS OLD
+
+//        public PictureAdapter(Context context, List<HashMap<String, String>> data){
+//            this.data = data;
+//            inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+//        }
+//        @Override
+//        public int getCount() {
+//            return data.size();
+//        }
+//
+//        @Override
+//        public HashMap<String, String> getItem(int position) {
+//            return data.get(position);
+//        }
+//
+//        @Override
+//        public long getItemId(int position) {
+//            return position;
+//        }
+//
+//        private class Holder{
+//            TextView tv;
+//            ImageView img;
+//        }
+//
+//        @Override
+//        public View getView(int position, View convertView, ViewGroup parent) {
+//
+//            final Holder holder = new Holder();
+//            View rowView;
+//            rowView = inflater.inflate(R.layout.picture_item, null);
+//            holder.tv=(TextView) rowView.findViewById(R.id.picture_text);
+//            holder.img=(ImageView) rowView.findViewById(R.id.picture_thumb);
+//
+//            holder.tv.setText(data.get(position).get("picture_text"));
+//
+//            HttpHelper.getInstance().getClient().get(getString(R.string.conn) + data.get(position).get("picture_thumb"), new AsyncHttpResponseHandler() {
+//                @Override
+//                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+//                    Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
+//                    holder.img.setImageBitmap(bitmap);
+//                }
+//
+//                @Override
+//                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+//
+//                }
+//            });
+//
+////            rowView.setOnClickListener(new View.OnClickListener() {
+////                @Override
+////                public void onClick(View v) {
+////                    Toast.makeText(context, "You Clicked "+result[position], Toast.LENGTH_LONG).show();
+////                }
+////            });
+//            return rowView;
+//        }
     }
 }
