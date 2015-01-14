@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.widget.DrawerLayout;
+import android.text.Layout;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,6 +23,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
@@ -245,7 +248,6 @@ public class MainActivity extends Activity {
     }
 
     private void populatePicturesList() {
-        pictureUrls = new HashMap<Integer, String>();
         pictureListItems = new ArrayList<HashMap<String, String>>();
 
         HttpHelper.getInstance().getClient().get(getString(R.string.conn) + getString(R.string.picture_index), new AsyncHttpResponseHandler() {
@@ -258,21 +260,8 @@ public class MainActivity extends Activity {
                         JSONObject j = json.getJSONObject(i);
                         final HashMap<String,String> item = new HashMap<String, String>();
                         item.put("picture_text", j.getString("text"));
-
-                        HttpHelper.getInstance().getClient().get(getString(R.string.conn) + j.getString("thumb_url"), new AsyncHttpResponseHandler() {
-                            @Override
-                            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                                Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
-                                item.put("picture_thumb", bitmap.toString());
-                                picturesList.deferNotifyDataSetChanged();
-                            }
-
-                            @Override
-                            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-
-                            }
-                        });
-                        pictureUrls.put(i, getString(R.string.conn) + j.getString("original_url"));
+                        item.put("picture_thumb", j.getString("thumb_url"));
+                        item.put("picture_orig", j.getString("original_url"));
 
                         pictureListItems.add(item);
                     }
@@ -280,11 +269,6 @@ public class MainActivity extends Activity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                String[] from = {"picture_text", "picture_thumb"};
-                int[] to = {R.id.picture_text, R.id.picture_thumb};
-
-                SimpleAdapter adapter = new SimpleAdapter(getBaseContext(), pictureListItems, R.layout.picture_item, from, to);
-                picturesList.setAdapter(adapter);
             }
 
             @Override
@@ -292,31 +276,69 @@ public class MainActivity extends Activity {
 
             }
         });
+        PictureAdapter adapter = new PictureAdapter(getBaseContext(), pictureListItems);
+        picturesList.setAdapter(adapter);
     }
 
     private class PictureAdapter extends BaseAdapter {
+        List<HashMap<String, String>> data;
+        LayoutInflater inflater;
 
-        public PictureAdapter(Context context, List<HashMap<String, ?>> data, int Resource ){
-
+        public PictureAdapter(Context context, List<HashMap<String, String>> data){
+            this.data = data;
+            inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         }
         @Override
         public int getCount() {
-            return 0;
+            return data.size();
         }
 
         @Override
-        public Object getItem(int position) {
-            return null;
+        public HashMap<String, String> getItem(int position) {
+            return data.get(position);
         }
 
         @Override
         public long getItemId(int position) {
-            return 0;
+            return position;
+        }
+
+        private class Holder{
+            TextView tv;
+            ImageView img;
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            return null;
+
+            final Holder holder = new Holder();
+            View rowView;
+            rowView = inflater.inflate(R.layout.picture_item, null);
+            holder.tv=(TextView) rowView.findViewById(R.id.picture_text);
+            holder.img=(ImageView) rowView.findViewById(R.id.picture_thumb);
+
+            holder.tv.setText(data.get(position).get("picture_text"));
+
+            HttpHelper.getInstance().getClient().get(getString(R.string.conn) + data.get(position).get("picture_thumb"), new AsyncHttpResponseHandler() {
+                @Override
+                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
+                    holder.img.setImageBitmap(bitmap);
+                }
+
+                @Override
+                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+                }
+            });
+
+//            rowView.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    Toast.makeText(context, "You Clicked "+result[position], Toast.LENGTH_LONG).show();
+//                }
+//            });
+            return rowView;
         }
     }
 }

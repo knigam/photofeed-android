@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     <ImageView
         android:id="@+id/picture_thumb"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="10dp"/>
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:paddingRight="10dp"
+        android:scaleType="fitXY"/>
 
     <TextView
         android:id="@+id/picture_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="15dp"/>
+        android:textSize="15dp"
+        android:layout_gravity="center"/>
 </LinearLayout>
