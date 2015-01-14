@@ -12,43 +12,36 @@
         android:paddingRight="@dimen/activity_horizontal_margin"
         android:paddingTop="@dimen/activity_vertical_margin"
         android:paddingBottom="@dimen/activity_vertical_margin">
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/scrollView"
-            android:layout_gravity="center"
-            android:layout_weight="0.9">
 
-            <LinearLayout
-                tools:context="com.keonasoft.photofeed.app.MainActivity"
-                xmlns:android="http://schemas.android.com/apk/res/android"
-                xmlns:tools="http://schemas.android.com/tools"
+        <LinearLayout
+            tools:context="com.keonasoft.photofeed.app.MainActivity"
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingLeft="@dimen/activity_horizontal_margin"
+            android:paddingRight="@dimen/activity_horizontal_margin"
+            android:paddingTop="@dimen/activity_vertical_margin"
+            android:paddingBottom="@dimen/activity_vertical_margin"
+            android:gravity="center"
+            android:id="@+id/linearLayout"
+            android:orientation="vertical">
+
+            <ListView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:paddingLeft="@dimen/activity_horizontal_margin"
-                android:paddingRight="@dimen/activity_horizontal_margin"
-                android:paddingTop="@dimen/activity_vertical_margin"
-                android:paddingBottom="@dimen/activity_vertical_margin"
-                android:gravity="center"
-                android:id="@+id/linearLayout"
-                android:orientation="vertical">
+                android:id="@+id/pictures_list"
+                android:elevation="10dp"
+                android:choiceMode="singleChoice" />
+            <!--<ImageView-->
+                <!--android:layout_width="wrap_content"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:id="@+id/thumbnail"-->
+                <!--android:layout_gravity="center"-->
+                <!--android:contentDescription="thumbnail"-->
+                <!--android:elevation="10dp"/>-->
 
-                <ListView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/pictures_list"
-                    android:elevation="10dp"
-                    android:choiceMode="singleChoice" />
-                <!--<ImageView-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:id="@+id/thumbnail"-->
-                    <!--android:layout_gravity="center"-->
-                    <!--android:contentDescription="thumbnail"-->
-                    <!--android:elevation="10dp"/>-->
-
-            </LinearLayout>
-        </ScrollView>
+        </LinearLayout>
         <com.getbase.floatingactionbutton.AddFloatingActionButton
             android:id="@+id/camera_button"
             android:layout_width="wrap_content"

@@ -16,6 +16,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
@@ -50,7 +51,7 @@ public class MainActivity extends Activity {
     private DrawerLayout mDrawerLayout;
     private ListView mDrawerList;
 
-    private ArrayList<String> pictureListItems;
+    private ArrayList<HashMap<String,String>> pictureListItems;
     private ListView picturesList;
     private Map<Integer, String> pictureUrls;
 
@@ -66,6 +67,7 @@ public class MainActivity extends Activity {
         picturesList = (ListView) findViewById(R.id.pictures_list);
 
         updateDrawerListItems();
+        populatePicturesList();
 
         mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
@@ -89,7 +91,8 @@ public class MainActivity extends Activity {
         });
 
         cameraBtn = (FloatingActionButton) findViewById(R.id.camera_button);
-        mImageView = (ImageView) findViewById(R.id.thumbnail);
+        //TODO: MOVE NEXT LINE TO NEW ACTIVITY
+        // mImageView = (ImageView) findViewById(R.id.thumbnail);
 
         cameraBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -102,24 +105,24 @@ public class MainActivity extends Activity {
     }
 
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        // Inflate the menu; this adds items to the action bar if it is present.
+//        getMenuInflater().inflate(R.menu.main, menu);
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        // Handle action bar item clicks here. The action bar will
+//        // automatically handle clicks on the Home/Up button, so long
+//        // as you specify a parent activity in AndroidManifest.xml.
+//        int id = item.getItemId();
+//        if (id == R.id.action_settings) {
+//            return true;
+//        }
+//        return super.onOptionsItemSelected(item);
+//    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -237,7 +240,8 @@ public class MainActivity extends Activity {
 
     private void populatePicturesList() {
         pictureUrls = new HashMap<Integer, String>();
-        pictureListItems = new ArrayList<String>();
+        pictureListItems = new ArrayList<HashMap<String, String>>();
+
         HttpHelper.getInstance().getClient().get(getString(R.string.conn) + getString(R.string.picture_index), new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
@@ -246,13 +250,35 @@ public class MainActivity extends Activity {
                     json = new JSONArray(new String(responseBody));
                     for (int i = 0; i < json.length(); i++){
                         JSONObject j = json.getJSONObject(i);
-                        pictureListItems.add(j.getString("text"));
+                        final HashMap<String,String> item = new HashMap<String, String>();
+                        item.put("picture_text", j.getString("text"));
+
+                        HttpHelper.getInstance().getClient().get(getString(R.string.conn) + j.getString("thumb_url"), new AsyncHttpResponseHandler() {
+                            @Override
+                            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                                Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
+                                item.put("picture_thumb", bitmap.toString());
+                                picturesList.deferNotifyDataSetChanged();
+                            }
+
+                            @Override
+                            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+                            }
+                        });
                         pictureUrls.put(i, getString(R.string.conn) + j.getString("original_url"));
+
+                        pictureListItems.add(item);
                     }
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                picturesList.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, drawerListItems));
+                String[] from = {"picture_text", "picture_thumb"};
+                int[] to = {R.id.picture_text, R.id.picture_thumb};
+
+                SimpleAdapter adapter = new SimpleAdapter(getBaseContext(), pictureListItems, R.layout.picture_item, from, to);
+                picturesList.setAdapter(adapter);
             }
 
             @Override
