@@ -175,9 +175,11 @@ public class MainActivity extends Activity {
                     HttpHelper.getInstance().getClient().get(imageUrl, new AsyncHttpResponseHandler() {
                         @Override
                         public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                            Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
-                            mImageView.setImageBitmap(bitmap);
-                            setTitle(image.getName());
+//                            Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
+//                            mImageView.setImageBitmap(bitmap);
+//                            setTitle(image.getName());
+                            //TODO Start new activity to show picture
+                            populatePicturesList();
                             updateDrawerListItems();
                         }
 
