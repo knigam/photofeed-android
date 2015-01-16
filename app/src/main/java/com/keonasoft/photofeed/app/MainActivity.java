@@ -274,7 +274,7 @@ public class MainActivity extends Activity {
                         final HashMap<String,String> item = new HashMap<String, String>();
                         item.put("picture_text", j.getString("text"));
                         item.put("picture_thumb", j.getString("thumb_url"));
-                        item.put("picture_orig", j.getString("original_url"));
+                        item.put("url", j.getString("url"));
 
                         pictureListItems.add(item);
                     }
@@ -295,7 +295,7 @@ public class MainActivity extends Activity {
     private class PictureAdapter extends RecyclerView.Adapter {
         private List<HashMap<String, String>> data;
 
-        private class ViewHolder extends RecyclerView.ViewHolder{
+        private class ViewHolder extends RecyclerView.ViewHolder {
             TextView tv;
             ImageView img;
 
@@ -318,7 +318,14 @@ public class MainActivity extends Activity {
             View rowView = LayoutInflater.from(parent.getContext()).inflate(R.layout.picture_item, parent, false);
 
             // set the view's size, margins, paddings and layout parameters
-
+            rowView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(MainActivity.this, PictureActivity.class);
+                    intent.putExtra("url", data.get(picturesList.getChildPosition(v)).get("url"));
+                    startActivity(intent);
+                }
+            });
             ViewHolder vh = new ViewHolder(rowView);
             return vh;
         }

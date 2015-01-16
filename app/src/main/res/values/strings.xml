@@ -9,5 +9,7 @@
     <string name="conn">http://kushalnigam.tk:8080</string>
     <string name="picture_create">/pictures.json</string>
     <string name="picture_index">/pictures.json</string>
+    <string name="title_activity_picture">PictureActivity</string>
+    <string name="hello_world">Hello world!</string>
 
 </resources>
