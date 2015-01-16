@@ -18,6 +18,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -85,6 +87,31 @@ public class MainActivity extends Activity {
 
         adapter = new PictureAdapter(pictureListItems);
         picturesList.setAdapter(adapter);
+
+        picturesList.setOnScrollListener(new RecyclerView.OnScrollListener() {
+            private boolean hidden = false;
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                Animation animation;
+
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy >= 0 && !hidden) {
+                    animation = new TranslateAnimation(0, 0,0, 300);
+                    hidden = true;
+                }
+                else if (dy < 0 && hidden){
+                    animation = new TranslateAnimation(0, 0,300, 0);
+                    hidden = false;
+                }
+                else
+                    return;
+
+                animation.setDuration(300);
+                animation.setFillAfter(true);
+                cameraBtn.startAnimation(animation);
+                cameraBtn.setVisibility(View.INVISIBLE);
+            }
+        });
 
         updateDrawerListItems();
         populatePicturesList();
