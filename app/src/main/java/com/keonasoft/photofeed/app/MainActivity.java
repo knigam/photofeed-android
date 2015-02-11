@@ -56,9 +56,10 @@ public class MainActivity extends Activity {
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
     static final int REQUEST_TAKE_PHOTO = 1;
+    private String CONN;
+    private int albumPosition = 0;
     private String mCurrentPhotoPath;
     private FloatingActionButton cameraBtn;
-    private ImageView mImageView;
     private ArrayList<String> drawerListItems;
     private Map<Integer, String> albumUrls;
     private DrawerLayout mDrawerLayout;
@@ -75,6 +76,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         HttpHelper.getInstance().initialize(getApplicationContext());
 
+        CONN = getString(R.string.conn);
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
@@ -114,16 +116,15 @@ public class MainActivity extends Activity {
         });
 
         updateDrawerListItems();
-        populatePicturesList();
 
         mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
-            public void onItemClick(AdapterView parent, View view, int position, long id) {
+            public void onItemClick(AdapterView parent, View view, final int position, long id) {
                 HttpHelper.getInstance().getClient().get(albumUrls.get(position), new AsyncHttpResponseHandler() {
                     @Override
                     public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                        Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
-                        mImageView.setImageBitmap(bitmap);
+                        albumPosition = position;
+                        populatePicturesList(responseBody);
                     }
 
                     @Override
@@ -176,7 +177,7 @@ public class MainActivity extends Activity {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
 
             //Todo: send picture to server
-            final String URL = getString(R.string.conn) + getString(R.string.picture_create);
+            final String URL = albumUrls.get(albumPosition);
             final File image = new File(mCurrentPhotoPath);
             RequestParams params = new RequestParams();
             params.put("text", image.getName());
@@ -185,36 +186,10 @@ public class MainActivity extends Activity {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-            final String[] IMAGEURL = new String[1];
             HttpHelper.getInstance().getClient().post(URL, params, new AsyncHttpResponseHandler() {
                 @Override
                 public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                    JSONObject json;
-                    final String CONN = getString(R.string.conn);
-                    String imageUrl = CONN + "/404.html";
-                    try {
-                        json = new JSONObject(new String(responseBody));
-                        imageUrl = CONN + json.getString("image_url");
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-
-                    HttpHelper.getInstance().getClient().get(imageUrl, new AsyncHttpResponseHandler() {
-                        @Override
-                        public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-//                            Bitmap bitmap = BitmapFactory.decodeByteArray(responseBody,0, responseBody.length);
-//                            mImageView.setImageBitmap(bitmap);
-//                            setTitle(image.getName());
-                            //TODO Start new activity to show picture
-                            populatePicturesList();
-                            updateDrawerListItems();
-                        }
-
-                        @Override
-                        public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-
-                        }
-                    });
+                    populatePicturesList(albumPosition);
                 }
 
                 @Override
@@ -263,7 +238,7 @@ public class MainActivity extends Activity {
     private void updateDrawerListItems() {
         albumUrls = new HashMap<Integer, String>();
         drawerListItems = new ArrayList<String>();
-        HttpHelper.getInstance().getClient().get(getString(R.string.conn) + getString(R.string.picture_index), new AsyncHttpResponseHandler() {
+        HttpHelper.getInstance().getClient().get(CONN + getString(R.string.albums), new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 JSONArray json;
@@ -271,8 +246,8 @@ public class MainActivity extends Activity {
                     json = new JSONArray(new String(responseBody));
                     for (int i = 0; i < json.length(); i++){
                         JSONObject j = json.getJSONObject(i);
-                        drawerListItems.add(j.getString("text"));
-                        albumUrls.put(i, getString(R.string.conn) + j.getString("original_url"));
+                        drawerListItems.add(j.getString("name"));
+                        albumUrls.put(i, j.getString("url"));
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -287,36 +262,42 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void populatePicturesList() {
+    private void populatePicturesList(int position) {
         pictureListItems = new ArrayList<HashMap<String, String>>();
 
-        HttpHelper.getInstance().getClient().get(getString(R.string.conn) + getString(R.string.picture_index), new AsyncHttpResponseHandler() {
+        HttpHelper.getInstance().getClient().get(albumUrls.get(position), new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                JSONArray json;
-                try {
-                    json = new JSONArray(new String(responseBody));
-                    for (int i = 0; i < json.length(); i++){
-                        JSONObject j = json.getJSONObject(i);
-                        final HashMap<String,String> item = new HashMap<String, String>();
-                        item.put("picture_text", j.getString("text"));
-                        item.put("picture_thumb", j.getString("thumb_url"));
-                        item.put("url", j.getString("url"));
+                populatePicturesList(responseBody);
 
-                        pictureListItems.add(item);
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                adapter.refresh(pictureListItems);
             }
-
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
 
             }
         });
+    }
+
+    private void populatePicturesList(byte[] responseBody) {
+        pictureListItems = new ArrayList<HashMap<String, String>>();
+
+        JSONArray json;
+        try {
+            json = new JSONArray(new String(responseBody));
+            for (int i = 0; i < json.length(); i++){
+                JSONObject j = json.getJSONObject(i);
+                final HashMap<String,String> item = new HashMap<String, String>();
+                item.put("picture_text", j.getString("text"));
+                item.put("picture_thumb", j.getString("thumb_url"));
+                item.put("url", j.getString("url"));
+
+                pictureListItems.add(item);
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        adapter.refresh(pictureListItems);
     }
 
     private class PictureAdapter extends RecyclerView.Adapter {
